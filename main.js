@@ -19,6 +19,9 @@ const gameSystem = (() => {
   this.player1Sign = "";
   this.player2Sign = "";
 
+  this.AILevel = "";
+  this.AIOn = false;
+
   // Function that shows the player his options to start playing.
   const showPlayingOptions = () => {
     main.innerHTML = `
@@ -69,17 +72,26 @@ const gameSystem = (() => {
       <div class="player-one">
         <span class="heading2">Player One</span> <span class="heading3">Name:</span>
         <input type="text" name="player1Name" id="player1Name" />
-        <img src="./imgs/lightX.png" alt="X sign" class="signSelect"> <img src="./imgs/lightO.png" alt="O sign" class="signSelect">
+        <img src="./imgs/lightX.png" alt="X sign" class="signSelect" id="X"> <img src="./imgs/lightO.png" alt="O sign" class="signSelect" id="O">
       </div>
       <div class="AIoptions">
         <span class="heading2">AI</span>
         <span>Please select a difficulty</span>
-        <button class="option">Easy Mode</button>
-        <button class="option">Normal Mode</button>
-        <button class="option">Hard Mode</button>
+        <button class="option" id="easy">Easy Mode</button>
+        <button class="option" id="normal">Normal Mode</button>
+        <button class="option" id="unfair">Unfair Mode</button>
       </div>
     </div>
     `;
+
+    const signs = document.querySelectorAll(".signSelect");
+    signs.forEach((sign) => {
+      return sign.addEventListener("click", (e) =>
+        sign.classList.contains("selected")
+          ? sign.classList.remove("selected")
+          : sign.classList.add("selected")
+      );
+    });
   };
 
   // Function that start the game against a friend on the same computer.
@@ -123,6 +135,69 @@ const gameSystem = (() => {
       <span class="heading" id="score2">Score: ${gameSystem.player2.showScore()}</span>
     </div>
     `;
+
+    const li = document.querySelectorAll("li");
+    li.forEach((li) => li.addEventListener("click", gameBoard.addSign));
+  };
+
+  // Function that start the game against an AI.
+  const againstAI = (e) => {
+    if (
+      e.target.id !== "easy" &&
+      e.target.id !== "normal" &&
+      e.target.id !== "unfair"
+    )
+      return;
+
+    gameSystem.AIOn = true;
+
+    const signs = {
+      X : "./imgs/lightX.png",
+      O : "./imgs/lightO.png"
+    }
+
+    const AISign = document.querySelector(".selected").id == "X" ? "O" : "X";
+
+    gameSystem.player1 = player(
+      document.getElementById("player1Name").value,
+      document.querySelector(".selected").id
+    );
+    gameSystem.player2 = player("AI", AISign);
+
+    gameSystem.player1Sign = gameSystem.player1.sign;
+    gameSystem.player2Sign = gameSystem.player2.sign;
+
+    gameSystem.AILevel = e.target.id;
+
+    main.innerHTML = `
+    <div class="player1Info">
+      <span class="heading">${gameSystem.player1.name}</span>
+      <img src=${gameSystem.player1Sign == Object.keys(signs)[0] ? signs.X : signs.O} alt="X"/>
+      <span class="heading" id="score1">Score: ${gameSystem.player1.showScore()}</span>
+    </div>
+    <div class="playGround">
+      <ul class="gameBoard">
+        <li id="c1"></li>
+        <li id="c2"></li>
+        <li id="c3"></li>
+        <li id="c4"></li>
+        <li id="c5"></li>
+        <li id="c6"></li>
+        <li id="c7"></li>
+        <li id="c8"></li>
+        <li id="c9"></li>
+      </ul>
+    </div>
+    <div class="player2Info">
+      <span class="heading"> ${gameSystem.player2.name} </span>
+      <img src=${gameSystem.player2Sign == Object.keys(signs)[1] ? signs.O : signs.X} alt="X"/>
+      <span class="heading" id="score2">Score: ${gameSystem.player2.showScore()}</span>
+    </div>
+    `;
+
+    gameBoard.roundStart()
+    const li = document.querySelectorAll("li");
+    li.forEach((li) => li.addEventListener("click", gameBoard.addSign));
   };
 
   // Function that renders the new score after a round ends.
@@ -133,6 +208,7 @@ const gameSystem = (() => {
     document.getElementById(
       "score2"
     ).innerText = `Score: ${gameSystem.player2.showScore()}`;
+    gameBoard.roundStart()
   };
 
   // Function that shows the winner name and give the players the option to start new game or a round.
@@ -183,12 +259,14 @@ const gameSystem = (() => {
     else if (e.target.id == "againstFriendPlay") againstFriend(e);
   };
 
+  // Function that allow the player to keep playing and keeping the score.
   const startNewRound = (e) => {
     if (e.target.id !== "newRound") return;
     gameBoard.clearBoard();
     main.removeChild(document.getElementById("winnerScreen"));
   };
 
+  // Function that allow the player to start new game with no game score.
   const restartGame = (e) => {
     if (e.target.id !== "newGame") return;
     main.innerHTML = "";
@@ -207,12 +285,20 @@ const gameSystem = (() => {
     scoreUpdate,
     startNewRound,
     restartGame,
+    againstAI,
+    AILevel,
+    AIOn
   };
 })();
 
 const gameBoard = (() => {
+  const body = document.querySelector("body");
   let board = [];
-  this.turn = gameSystem.player1Sign;
+  this.turn = "";
+
+  const roundStart = () => {
+    gameBoard.turn = gameSystem.player1Sign;
+  }
 
   // Function that renders the game board.
   const renderBoard = (id) => {
@@ -225,12 +311,16 @@ const gameBoard = (() => {
   const addSign = (e) => {
     if (e.target.tagName !== "LI") return;
     else if (document.getElementById(e.target.id).innerText !== "") return;
-    board.push(this.turn);
+    board.push(gameBoard.turn);
     renderBoard(e.target.id);
-    this.turn == gameSystem.player1Sign
-      ? (this.turn = gameSystem.player2Sign)
-      : (this.turn = gameSystem.player1Sign);
+    gameBoard.turn == gameSystem.player1Sign
+    ? (gameBoard.turn = gameSystem.player2Sign)
+    : (gameBoard.turn = gameSystem.player1Sign);
     gameSystem.scoreUpdate();
+    if (gameSystem.AIOn && winnerCheck() == undefined) body.classList.add("stop");
+    setTimeout(() => {
+      AIPlay(gameSystem.AILevel)
+    }, 500);
   };
 
   // Function that check the result of the round.
@@ -245,9 +335,6 @@ const gameBoard = (() => {
       [4, 5, 6],
       [7, 8, 9],
     ];
-    if (board.includes("")) {
-      board.shift();
-    }
     for (i = 0; possibilities.length > i; i++) {
       const tic = document.getElementById(`c${possibilities[i][0]}`).innerText;
       const tac = document.getElementById(`c${possibilities[i][1]}`).innerText;
@@ -266,18 +353,40 @@ const gameBoard = (() => {
     gameBoard.forEach((cell) => (cell.innerText = ""));
   };
 
+  const AIPlay = (level) => {
+    if (gameSystem.AIOn == false || gameBoard.turn == gameSystem.player1Sign || winnerCheck() !== undefined) return;
+
+    if (level = "easy") {
+      let emptyCells = []
+      const emptyCellsCheck = document.querySelectorAll("li").forEach(cell => {
+        emptyCells.push({id: cell.id, empty: cell.innerText == "" ? true : false}) 
+      });
+      emptyCells = emptyCells.filter(cell => cell.empty == true);
+
+      const cellID = Math.floor(Math.random() * emptyCells.length);
+
+      const cell = document.getElementById(`${emptyCells[cellID].id}`);
+
+      cell.innerText = gameSystem.player2Sign;
+      gameBoard.turn = gameSystem.player1Sign;
+      body.classList.remove("stop");
+      gameSystem.scoreUpdate();
+    }
+  }
+
   return {
     addSign,
     winnerCheck,
     clearBoard,
-    board
+    roundStart
   };
 })();
 
 window.addEventListener("click", gameSystem.startGame);
-window.addEventListener("click", gameBoard.addSign);
 window.addEventListener("click", gameSystem.startNewRound);
 window.addEventListener("click", gameSystem.restartGame);
+window.addEventListener("click", gameSystem.againstAI);
+
 window.addEventListener("click", (e) => {
   if (e.target.id !== "remove") return;
   gameSystem.showPlayingOptions();

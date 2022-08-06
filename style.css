@@ -204,6 +204,11 @@ main {
   border: 3px solid var(--lightModeFontColor);
 }
 
+.selected {
+  border: 3px solid var(--lightModeFontColor);
+  filter: brightness(90%);
+}
+
 .AIoptions .heading2 {
   margin-bottom: 5px;
   margin-top: 15px;
@@ -357,6 +362,9 @@ li {
   box-shadow: inset 0px 1px 5px 1px rgba(0, 0, 0, 0.75);
 }
 
+.stop {
+  pointer-events: none;
+}
 /*****************************************/
 /**********Footer Settings************/
 /*****************************************/
