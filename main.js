@@ -1,7 +1,7 @@
 const player = (name, sign) => {
   let score = 0;
   const changeScore = (value) => {
-    score = +value;
+    score += +value;
   };
   const showScore = () => {
     const x = score;
@@ -136,6 +136,7 @@ const gameSystem = (() => {
     </div>
     `;
 
+    gameBoard.roundStart();
     const li = document.querySelectorAll("li");
     li.forEach((li) => li.addEventListener("click", gameBoard.addSign));
   };
@@ -152,9 +153,9 @@ const gameSystem = (() => {
     gameSystem.AIOn = true;
 
     const signs = {
-      X : "./imgs/lightX.png",
-      O : "./imgs/lightO.png"
-    }
+      X: "./imgs/lightX.png",
+      O: "./imgs/lightO.png",
+    };
 
     const AISign = document.querySelector(".selected").id == "X" ? "O" : "X";
 
@@ -172,7 +173,9 @@ const gameSystem = (() => {
     main.innerHTML = `
     <div class="player1Info">
       <span class="heading">${gameSystem.player1.name}</span>
-      <img src=${gameSystem.player1Sign == Object.keys(signs)[0] ? signs.X : signs.O} alt="X"/>
+      <img src=${
+        gameSystem.player1Sign == Object.keys(signs)[0] ? signs.X : signs.O
+      } alt="X"/>
       <span class="heading" id="score1">Score: ${gameSystem.player1.showScore()}</span>
     </div>
     <div class="playGround">
@@ -190,12 +193,14 @@ const gameSystem = (() => {
     </div>
     <div class="player2Info">
       <span class="heading"> ${gameSystem.player2.name} </span>
-      <img src=${gameSystem.player2Sign == Object.keys(signs)[1] ? signs.O : signs.X} alt="X"/>
+      <img src=${
+        gameSystem.player2Sign == Object.keys(signs)[1] ? signs.O : signs.X
+      } alt="X"/>
       <span class="heading" id="score2">Score: ${gameSystem.player2.showScore()}</span>
     </div>
     `;
 
-    gameBoard.roundStart()
+    gameBoard.roundStart();
     const li = document.querySelectorAll("li");
     li.forEach((li) => li.addEventListener("click", gameBoard.addSign));
   };
@@ -208,7 +213,6 @@ const gameSystem = (() => {
     document.getElementById(
       "score2"
     ).innerText = `Score: ${gameSystem.player2.showScore()}`;
-    gameBoard.roundStart()
   };
 
   // Function that shows the winner name and give the players the option to start new game or a round.
@@ -234,6 +238,7 @@ const gameSystem = (() => {
   // Function that update the score of the players.
   const scoreUpdate = () => {
     if (gameBoard.winnerCheck() == gameSystem.player1.sign) {
+      gameBoard.roundStart();
       gameSystem.player1.changeScore("1");
       renderScore();
       gameSystem.player1.name !== ""
@@ -241,6 +246,7 @@ const gameSystem = (() => {
         : renderWinner(gameSystem.player1.sign);
       return;
     } else if (gameBoard.winnerCheck() == gameSystem.player2.sign) {
+      gameBoard.roundStart();
       gameSystem.player2.changeScore("1");
       gameSystem.player2.name !== ""
         ? renderWinner(gameSystem.player2.name)
@@ -248,6 +254,7 @@ const gameSystem = (() => {
       renderScore();
       return;
     } else if (gameBoard.winnerCheck() == "tie") {
+      gameBoard.roundStart();
       renderWinner(gameBoard.winnerCheck());
     }
   };
@@ -287,18 +294,18 @@ const gameSystem = (() => {
     restartGame,
     againstAI,
     AILevel,
-    AIOn
+    AIOn,
   };
 })();
 
 const gameBoard = (() => {
   const body = document.querySelector("body");
-  let board = [];
+  const board = [];
   this.turn = "";
 
   const roundStart = () => {
     gameBoard.turn = gameSystem.player1Sign;
-  }
+  };
 
   // Function that renders the game board.
   const renderBoard = (id) => {
@@ -314,12 +321,13 @@ const gameBoard = (() => {
     board.push(gameBoard.turn);
     renderBoard(e.target.id);
     gameBoard.turn == gameSystem.player1Sign
-    ? (gameBoard.turn = gameSystem.player2Sign)
-    : (gameBoard.turn = gameSystem.player1Sign);
+      ? (gameBoard.turn = gameSystem.player2Sign)
+      : (gameBoard.turn = gameSystem.player1Sign);
     gameSystem.scoreUpdate();
-    if (gameSystem.AIOn && winnerCheck() == undefined) body.classList.add("stop");
+    if (gameSystem.AIOn && winnerCheck() == undefined)
+      body.classList.add("stop");
     setTimeout(() => {
-      AIPlay(gameSystem.AILevel)
+      AIPlay(gameSystem.AILevel);
     }, 500);
   };
 
@@ -353,32 +361,198 @@ const gameBoard = (() => {
     gameBoard.forEach((cell) => (cell.innerText = ""));
   };
 
+  // Function that make the AI place a sign on the game board with different levels of complexity.
   const AIPlay = (level) => {
-    if (gameSystem.AIOn == false || gameBoard.turn == gameSystem.player1Sign || winnerCheck() !== undefined) return;
+    if (
+      gameSystem.AIOn == false ||
+      gameBoard.turn == gameSystem.player1Sign ||
+      winnerCheck() !== undefined
+    )
+      return;
 
-    if (level = "easy") {
-      let emptyCells = []
-      const emptyCellsCheck = document.querySelectorAll("li").forEach(cell => {
-        emptyCells.push({id: cell.id, empty: cell.innerText == "" ? true : false}) 
-      });
-      emptyCells = emptyCells.filter(cell => cell.empty == true);
+    if (level == "easy") {
+      let emptyCells = [];
+      const emptyCellsCheck = document
+        .querySelectorAll("li")
+        .forEach((cell) => {
+          emptyCells.push({
+            id: cell.id,
+            empty: cell.innerText == "" ? true : false,
+          });
+        });
+      emptyCells = emptyCells.filter((cell) => cell.empty == true);
 
       const cellID = Math.floor(Math.random() * emptyCells.length);
 
-      const cell = document.getElementById(`${emptyCells[cellID].id}`);
+      board.push(gameBoard.turn);
+      renderBoard(emptyCells[cellID].id);
 
-      cell.innerText = gameSystem.player2Sign;
+      gameBoard.turn = gameSystem.player1Sign;
+      body.classList.remove("stop");
+      gameSystem.scoreUpdate();
+    } else if (level == "normal") {
+      const possibilities = [
+        ["c1", "c2", "c3"],
+        ["c1", "c5", "c9"],
+        ["c1", "c4", "c7"],
+        ["c2", "c5", "c8"],
+        ["c3", "c6", "c9"],
+        ["c3", "c5", "c7"],
+        ["c4", "c5", "c6"],
+        ["c7", "c8", "c9"],
+      ];
+      for (i = 0; i < possibilities.length; i++) {
+        const tic = document.getElementById(`${possibilities[i][0]}`).innerText;
+        const tac = document.getElementById(`${possibilities[i][1]}`).innerText;
+        const toe = document.getElementById(`${possibilities[i][2]}`).innerText;
+
+        if (
+          tic == gameSystem.player1Sign &&
+          tac == gameSystem.player1Sign &&
+          toe == ""
+        ) {
+          board.push(gameBoard.turn);
+          renderBoard(possibilities[i][2]);
+          gameBoard.turn = gameSystem.player1Sign;
+          body.classList.remove("stop");
+          gameSystem.scoreUpdate();
+          break;
+        } else if (
+          tic == gameSystem.player1Sign &&
+          toe == gameSystem.player1Sign &&
+          tac == ""
+        ) {
+          board.push(gameBoard.turn);
+          renderBoard(possibilities[i][1]);
+          gameBoard.turn = gameSystem.player1Sign;
+          body.classList.remove("stop");
+          gameSystem.scoreUpdate();
+          break;
+        } else if (
+          toe == gameSystem.player1Sign &&
+          tac == gameSystem.player1Sign &&
+          tic == ""
+        ) {
+          board.push(gameBoard.turn);
+          renderBoard(possibilities[i][0]);
+          gameBoard.turn = gameSystem.player1Sign;
+          body.classList.remove("stop");
+          gameSystem.scoreUpdate();
+          break;
+        } else if (i == possibilities.length - 1) {
+          AIPlay("easy");
+        }
+      }
+    } else if (level == "unfair") {
+      const checkCells = () => {
+        const cellsInfo = [];
+        const cells = document.querySelectorAll("li").forEach((cell) =>
+          cellsInfo.push({
+            id: cell.id,
+            empty: cell.innerText == "" ? true : false,
+            sign: cell.innerText,
+            index: cellsInfo.length,
+          })
+        );
+        return cellsInfo;
+      };
+
+      const checkWinner = (board) => {
+        const possibilities = [
+          [0, 1, 2],
+          [3, 4, 5],
+          [6, 7, 8],
+          [0, 3, 6],
+          [1, 4, 7],
+          [2, 5, 8],
+          [0, 4, 8],
+          [2, 4, 6],
+        ];
+
+        const availSpots = board.filter((spot) => spot.empty == true);
+
+        const player1 = { sign: gameSystem.player1Sign, score: -10 };
+        const player2 = { sign: gameSystem.player2Sign, score: 10 };
+
+        const players = [player1, player2];
+
+        for (let player of players) {
+          for (i = 0; i < possibilities.length; i++) {
+            const tic = board[possibilities[i][0]].sign;
+            const tac = board[possibilities[i][1]].sign;
+            const toe = board[possibilities[i][2]].sign;
+            const playerSign = player.sign;
+
+            if (tic == tac && tic == toe && tic == playerSign) {
+              return player.score;
+            }
+          }
+        }
+
+        if (availSpots.length == "0") {
+          return 0;
+        }
+      };
+
+      const minMax = (newBoard, player) => {
+        const availSpots = newBoard.filter((spot) => spot.empty == true);
+        if (checkWinner(newBoard) !== undefined)
+          return { score: checkWinner(newBoard) };
+        const movesList = [];
+        let count = 0;
+
+        for (let i = count; i < availSpots.length; i++) {
+          const spotIndex = availSpots[i].index;
+          const move = {};
+          move.id = availSpots[i].id;
+          newBoard[spotIndex].sign = player;
+          newBoard[spotIndex].empty = false;
+
+          player == gameSystem.player1Sign
+            ? (move.score = minMax(newBoard, gameSystem.player2Sign).score)
+            : (move.score = minMax(newBoard, gameSystem.player1Sign).score);
+
+          newBoard[spotIndex].sign = "";
+          newBoard[spotIndex].empty = true;
+          movesList.push(move);
+        }
+
+        let bestMove;
+
+        if (player == gameSystem.player1Sign) {
+          let bestScore = Infinity;
+          for (i = 0; i < movesList.length; i++) {
+            if (movesList[i].score < bestScore) {
+              bestScore = movesList[i].score;
+              bestMove = i;
+            }
+          }
+        } else {
+          let bestScore = -Infinity;
+          for (i = 0; i < movesList.length; i++) {
+            if (movesList[i].score > bestScore) {
+              bestScore = movesList[i].score;
+              bestMove = i;
+            }
+          }
+        }
+
+        return movesList[bestMove];
+      };
+
+      board.push(gameBoard.turn);
+      renderBoard(minMax(checkCells(), gameBoard.turn).id);
       gameBoard.turn = gameSystem.player1Sign;
       body.classList.remove("stop");
       gameSystem.scoreUpdate();
     }
-  }
+  };
 
   return {
     addSign,
     winnerCheck,
     clearBoard,
-    roundStart
+    roundStart,
   };
 })();
 
